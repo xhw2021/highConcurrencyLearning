@@ -44,6 +44,9 @@ Object中的wait()和notify()配合synchronized使用。
 对比Object.wait():它不需要先获得某个对象的锁，也不会抛出InterruptedException异常。
 ```
 
+## 1.5 信号量(semaphore)
+一般默认一个线程一次访问一个资源。通过信号量可以指定多个线程同时访问某一个资源。其主要方法有：acquire()和tryAcquire()以及release()方法。acquire方法尝试获得一个准入许可，如果无法获得就会一直等待。release()方法可以在线程访问完资源后释放许可，使得其他线程可以进行资源访问。
+
 # 2. 线程池
 
 
