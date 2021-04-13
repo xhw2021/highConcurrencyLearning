@@ -33,6 +33,10 @@ Object中的wait()和notify()配合synchronized使用。
 
 ## 1.3 倒计时器和循环栅栏
 
+- CountDownLatch（倒计时器）
+    用来作为多线程控制工具类，使某一个线程直到倒计时结束，再开始执行。countDownLatch.cutDown()方法为计数器减一。而countDownLatch.await()方法可以让主线程等待倒计时器里的线程全部完成后才继续执行。
+- CyclicBarrier(循环栅栏)
+    也是用来作为多线程并发控制工具，它的功能与CountDownLatch相似，但更加强大。CyclicBarrier除了可以接受parties参数，作为计数器次数，还可以接受barrierAction（当计数器一次计数完成后，系统会执行的动作。）
 ## 1.4 线程阻塞类工具LockSupport
 
 **LockSupport是一个线程阻塞工具，他可以在线程内的任意位置对线程进行阻塞。**
