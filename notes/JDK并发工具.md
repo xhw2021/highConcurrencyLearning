@@ -52,7 +52,54 @@ Object中的wait()和notify()配合synchronized使用。
 一般默认一个线程一次访问一个资源。通过信号量可以指定多个线程同时访问某一个资源。其主要方法有：acquire()和tryAcquire()以及release()方法。acquire方法尝试获得一个准入许可，如果无法获得就会一直等待。release()方法可以在线程访问完资源后释放许可，使得其他线程可以进行资源访问。
 
 # 2. 线程池
+- 出现原因：线程虽然是轻量级工具，但是开启和关闭仍要占用内存资源和时间，如果每个任务都进行线程的创建和销毁，很有可能会导致大量时间花费在线程的创建和销毁上，吞吐量反而下降。其次，过多的线程会增加内存溢出的风险，也会给GC带来压力。因此，生产环境中采用线程池来控制和管理线程，是必要的。
 
+- 线程池：为了让创建的线程复用。当需要使用线程时，可以从池子中选择一个空闲线程，当完成工作后，再将这个线程返回线程池，方便别的线程使用。
+
+- JDK中线程池有关API：
+    ```java
+    ExecutorService exec = Executors.newFixedThreadPool(10);
+    ```
+    Executors类扮演着线程池工厂的角色，通过Executors可以获得一个具有特定功能的线程池。可以返回的线程池包括：
+        
+    - newFixedThreadPool(int nThreads):返回一个固定线程数量的线程池。当有新任务提交时，若线程池中有空闲线程，则立即执行；若没有，任务被放在任务队列，等待线程空闲后，便处理队列中的任务。
+
+    - newCachedThreadPool():返回一个根据实际情况调整线程数量的线程池。若有空闲线程复用，优先使用可以复用的线程。若所有线程都在工作，又有新任务提交，则会创建新的线程处理任务。所有线程完成后都会进入线程池。
+
+    - newSingleThreadExecutor():返回只有一个线程的线程池。若有多余任务提交，则任务会被保存在一个任务队列中，**待线程空闲时，按照先入先出的顺序执行队列中的任务。**
+
+    - newSingleThreadScheduledExecutor():返回一个ScheduledExecutorService对象，线程池的大小为1。ScheduledExecutorService接口定义如下：ScheduledExecutorService(Runnable,delay,unit)。表示在某个固定的延时之后执行，或者周期性地执行某个任务。
+
+    - newScheduledThreadPool():该方法也返回一个ScheduledExecutorService对象，但是该线程可以指定线程的数量。
+    
+        *注意：在ScheduledExecutorService接口中，主要有两种方法的区别：scheduleAtFixedRate( )和scheduleWithFixedDelay( )。对于FixedRate方法来说，它是以上一个任务开始执行的时间作为起点，之后的period时间调度下一次任务；而FixedDelay()则是在上一个任务结束后，在经过delay的时间进行调度。*
+
+- 线程池的核心内部实现：
+
+    对于核心的几个线程池，其内部实现均采用了ThreadPoolExecutor实现。
+    ```java
+    public ThreadPoolExecutor(int corePoolSize,
+                              int maxinumPoolSize,
+                              long keepAliveTime,
+                              TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue,
+                              ThreadFactory threadFactory,
+                              RejectedExecutionHandler handler)
+    ```
+    其中，workQueue指被提交但是还没有执行的任务队列。按照队列功能分类，可以使用以下几种BlockingQueue。
+
+    -  直接提交队列：有SynchronousQueue提供，其没有容量，每一个插入操作都要等待一个相对应的删除操作。如果新任务交给线程执行，没有空闲的进程的话，且进程数量已经达到了最大值，就会执行拒绝策略。
+    - 有界的任务队列：有界的任务队列可以适用ArrayBlockingQueue实现。当使用有界的任务队列时，如果线程的corepoolsize未满，则优先创建新的线程；如果大于corepoolsize，则先将任务加入等待队列，等待队列满了的情况下，如果线程数不大于maxinumpoolsize，则创建新的线程，反之拒绝。
+    - 无界的任务队列：无界任务队列使用LinkedBlockingQueue实现，除非系统资源耗尽，否则无界的任务队列不存在任务入队失败的情况。
+    - 优先任务队列：通过PriorityBlockingQueue实现，可以控制任务的先后执行顺序，他是一个特殊的无界序列。可以根据任务的优先级顺序来先后执行。
+
+    此外，RejectedExecutionHandler的拒绝策略如下：
+    
+    - AbortPolicy策略：直接抛出异常，阻止系统正常工作；
+    - CallerRunPolicy策略：只要线程池未关闭，该策略就直接在调用者线程中运行被丢弃的任务。但是任务提交线程的性能会急速下降。
+    - DiscardOledestPolicy策略： 丢弃最老的一个请求，并尝试再次提交当前任务。
+    - DiscardPolicy策略：丢弃无法处理的任务。
+- 线程池的注意点：线程池可能会淹没掉程序抛出的异常，导致无法发现程序的错误。常见的解决方法可以采用execute()替换submit()；或者使用submit()返回的Future对象使用get()方法，获得异常。当然也可以通过拓展ThreadPoolExecutor方法来处理。
 
 
 # 3. JDK并发容器
